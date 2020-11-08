@@ -103,14 +103,13 @@ class BasicTSP:
         return [indA, indB]
 
     def selectionInTournament(self, tournament_size):
-        pool = [self.matingPool[random.randint(0, len(self.matingPool) - 1)] for i in range(tournament_size)]
+        allparents = self.matingPool
+        pool = random.sample(self.matingPool, k = tournament_size)
+        # pool = [allparents[random.randint(0, len(self.matingPool)-1)] for i in range(tournament_size)]
         indA = pool[0].copy()
         for ind_i in pool:
             if indA.getFitness() > ind_i.getFitness():
                 indA = ind_i.copy()
-        for i in range(len(self.matingPool) - 1):
-            if self.matingPool[i].genes == indA.genes:
-                del self.matingPool[i]
         assert len(set(indA.genes)) == self.genSize
         return indA
 
@@ -139,8 +138,8 @@ class BasicTSP:
         """
         Your Order-1 Crossover Implementation
         """
-        splitPoint1 = random.randint(0, self.genSize / 2)
-        splitPoint2 = random.randint(self.genSize / 2, self.genSize)
+        splitPoint1 = random.randint(0, int(self.genSize / 2))
+        splitPoint2 = random.randint(int(self.genSize / 2), self.genSize)
         cgenes = indA.genes[splitPoint1:splitPoint2]
         cgenes.extend(indB.genes[key] for key in range(self.genSize) if indB.genes[key] not in cgenes)
         child = Individual(self.genSize, self.data, cgenes)
@@ -152,9 +151,9 @@ class BasicTSP:
         Your Scramble Mutation implementation
         """
         if random.random() > self.mutationRate:
-            return
-        indexA = random.randint(0, self.genSize / 2)
-        indexB = random.randint(self.genSize / 2, self.genSize - 1)
+            return ind
+        indexA = random.randint(0, int(self.genSize / 2))
+        indexB = random.randint(int(self.genSize / 2), self.genSize - 1)
         temp = [ind.genes[i] for i in range(indexA, indexB)]
         random.shuffle(temp)
         assert len(temp) == indexB - indexA
@@ -162,15 +161,16 @@ class BasicTSP:
         ind.computeFitness()
         self.updateBest(ind)
         assert len(set(ind.genes)) == self.genSize
+        return ind
 
     def inversionMutation(self, ind):
         """
         Your Inversion Mutation implementation
         """
         if random.random() > self.mutationRate:
-            return
-        indexA = random.randint(0, self.genSize / 2)
-        indexB = random.randint(self.genSize / 2, self.genSize - 1)
+            return ind
+        indexA = random.randint(0, int(self.genSize / 2))
+        indexB = random.randint(int(self.genSize / 2), self.genSize - 1)
         temp = [ind.genes[i] for i in range(indexA, indexB)]
         temp.reverse()
         assert len(temp) == indexB - indexA
@@ -178,6 +178,7 @@ class BasicTSP:
         ind.computeFitness()
         self.updateBest(ind)
         assert len(set(ind.genes)) == self.genSize
+        return ind
 
     def crossover(self, indA, indB):
         """
@@ -196,7 +197,7 @@ class BasicTSP:
         Mutate an individual by swaping two cities with certain probability (i.e., mutation rate)
         """
         if random.random() > self.mutationRate:
-            return
+            return ind
         indexA = random.randint(0, self.genSize - 1)
         indexB = random.randint(0, self.genSize - 1)
 
@@ -206,6 +207,7 @@ class BasicTSP:
 
         ind.computeFitness()
         self.updateBest(ind)
+        return ind
 
     def updateMatingPool(self):
         """
@@ -230,6 +232,7 @@ class BasicTSP:
             2. Apply Crossover
             3. Apply Mutation
             """
+
             parent1, parent2 = self.binaryTournamentSelection()
 
             # Crossover selection
@@ -242,9 +245,11 @@ class BasicTSP:
 
             # Mutation selection
             if self.mutation_type == 'inversion':
-                self.inversionMutation(child)
+                child = self.inversionMutation(child)
+                self.population[i] = child.copy()
             elif self.mutation_type == 'scramble':
                 self.scrambleMutation(child)
+                self.population[i] = child.copy()
             else:
                 raise ValueError(f"{self.mutation_type} mutation is not mapped!")
 
