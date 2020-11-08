@@ -5,10 +5,11 @@ file: Individual.py
 
 import random
 import math
+import sys
 
 
 class Individual:
-    def __init__(self, _size, _data, cgenes):
+    def __init__(self, _size, _data, cgenes, initial_sol_random=False):
         """
         Parameters and general variables
         """
@@ -19,9 +20,11 @@ class Individual:
 
         if cgenes:  # Child genes from crossover
             self.genes = cgenes
-        else:  # Random initialisation of genes
+        elif initial_sol_random:  # Random initialisation of genes
             self.genes = list(self.data.keys())
             random.shuffle(self.genes)
+        else:
+            self.genes = self.heuristic()
 
     def copy(self):
         """
@@ -49,3 +52,26 @@ class Individual:
         self.fitness = self.euclideanDistance(self.genes[0], self.genes[len(self.genes) - 1])
         for i in range(0, self.genSize - 1):
             self.fitness += self.euclideanDistance(self.genes[i], self.genes[i + 1])
+
+    def heuristic(self):
+        """
+        Generating genes by heuristic method
+        """
+        nodes = list(self.data.keys())
+        random.shuffle(nodes)
+        parent = [nodes.pop(0)]
+
+        while nodes:
+            min_cost = sys.maxsize
+            min_cost_node = -1
+
+            for node in nodes:
+                cost = self.euclideanDistance(parent[-1], node)
+                if cost < min_cost:
+                    min_cost = cost
+                    min_cost_node = node
+
+            nodes = [node for node in nodes if node != min_cost_node]
+            parent.append(min_cost_node)
+
+        return parent

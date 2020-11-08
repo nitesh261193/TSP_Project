@@ -7,13 +7,16 @@ Rename this file to TSP_x.py where x is your student number
 import random
 from Individual import *
 import sys
+import time
 
 myStudentNum = 195231  # Replace 12345 with your student number
 random.seed(myStudentNum)
 
+NEW_GENERATIONS_CALLED = 0
+
 
 class BasicTSP:
-    def __init__(self, _fName, _popSize, _mutationRate, _maxIterations):
+    def __init__(self, _fName, _config, _popSize, _mutationRate, _maxIterations):
         """
         Parameters and general variables
         """
@@ -25,6 +28,7 @@ class BasicTSP:
         self.genSize = None
         self.mutationRate = _mutationRate
         self.maxIterations = _maxIterations
+        self.config = _config
         self.iteration = 0
         self.fName = _fName
         self.data = {}
@@ -50,6 +54,21 @@ class BasicTSP:
         """
         for i in range(0, self.popSize):
             individual = Individual(self.genSize, self.data, [])
+            individual.computeFitness()
+            self.population.append(individual)
+
+        self.best = self.population[0].copy()
+        for ind_i in self.population:
+            if self.best.getFitness() > ind_i.getFitness():
+                self.best = ind_i.copy()
+        print("Best initial sol: ", self.best.getFitness())
+
+    def initPopulation_heuristic(self):
+        """
+        Creating random individuals in the population
+        """
+        for i in range(0, self.popSize):
+            individual = Individual(self.genSize, self.data, [],True)
             individual.computeFitness()
             self.population.append(individual)
 
@@ -88,33 +107,40 @@ class BasicTSP:
         for ind_i in pool:
             if indA.getFitness() > ind_i.getFitness():
                 indA = ind_i.copy()
-        # print("Best selection in tournament", indA.getFitness())
         for i in range(len(self.matingPool)):
             if self.matingPool[i] == indA:
                 del self.matingPool[i]
+        assert len(set(indA.genes)) == self.genSize
         return indA
 
     def uniformCrossover(self, indA, indB):
         """
         Your Uniform Crossover Implementation
         """
-        RandomList = [] # this can be a set
-        temp2 = []
-        gens = []
-        for i in range(self.genSize-1):
-            temp2.append(i)
-        for i in range(int(self.genSize / 3)):
-            RandomList.append(random.randint(0, self.genSize-1))
-            # del temp2[RandomList[i]] # we can remove this line
-        for index in RandomList:
-            gens.insert(index, indA.genes[index])
-        for index1 in temp2:
-            if index1 in RandomList:
+        start_time = time.time()
+
+        def select_from_indA(index):
+            return index % 3 == 0
+
+        indA_selections_set = [indA.genes[i] for i in range(self.genSize) if select_from_indA(i)]
+        child_genes = []
+        j = 0
+        for i in range(self.genSize):
+            if select_from_indA(i):
+                child_genes.append(indA.genes[i])
                 continue
-            for genes in indB.genes:
-                if not genes in gens:
-                    gens.insert(index1, genes)
-        child = Individual(self.genSize, self.data, gens)
+
+            while indB.genes[j] in indA_selections_set:
+                j += 1
+
+            child_genes.append(indB.genes[j])
+            j += 1
+
+        assert len(set(child_genes)) == self.genSize
+        # print("Time in first:", time.time() - start_time)
+        start_time = time.time()
+        child = Individual(self.genSize, self.data, child_genes)
+        # print("Time in second:", time.time() - start_time)
         return child
 
     def order1Crossover(self, indA, indB):
@@ -128,6 +154,7 @@ class BasicTSP:
             if indB.genes[i] not in cgenes:
                 cgenes.append(indB.genes[i])
         child = Individual(self.genSize, self.data, cgenes)
+        assert len(set(child.genes)) == self.genSize
         return child
 
     def scrambleMutation(self, ind):
@@ -149,6 +176,7 @@ class BasicTSP:
 
         ind.computeFitness()
         self.updateBest(ind)
+        assert len(set(ind.genes)) == self.genSize
 
     def inversionMutation(self, ind):
         """
@@ -169,6 +197,7 @@ class BasicTSP:
 
         ind.computeFitness()
         self.updateBest(ind)
+        assert len(set(ind.genes)) == self.genSize
 
     def crossover(self, indA, indB):
         """
@@ -213,6 +242,8 @@ class BasicTSP:
         2. Crossover
         3. Mutation
         """
+
+        start_time = time.time()
         for i in range(0, len(self.population)):
             """
             Depending of your experiment you need to use the most suitable algorithms for:
@@ -220,9 +251,36 @@ class BasicTSP:
             2. Apply Crossover
             3. Apply Mutation
             """
-            parent1, parent2 = self.binaryTournamentSelection()
-            child = self.uniformCrossover(parent1, parent2)
-            self.scrambleMutation(child)
+            loop_start_time = time.time()
+            if self.config == 1:
+                parent1, parent2 = self.binaryTournamentSelection()
+                child = self.order1Crossover(parent1, parent2)
+                self.inversionMutation(child)
+            elif self.config == 2:
+                parent1, parent2 = self.binaryTournamentSelection()
+                child = self.uniformCrossover(parent1, parent2)
+                self.scrambleMutation(child)
+            elif self.config == 3:
+                parent1, parent2 = self.binaryTournamentSelection()
+                child = self.order1Crossover(parent1, parent2)
+                self.scrambleMutation(child)
+            elif self.config == 4:
+                parent1, parent2 = self.binaryTournamentSelection()
+                child = self.uniformCrossover(parent1, parent2)
+                self.inversionMutation(child)
+            elif self.config == 5:
+                parent1, parent2 = self.binaryTournamentSelection()
+                child = self.order1Crossover(parent1, parent2)
+                self.scrambleMutation(child)
+            elif self.config == 6:
+                parent1, parent2 = self.binaryTournamentSelection()
+                child = self.uniformCrossover(parent1, parent2)
+                self.inversionMutation(child)
+            # print("Time taken for one iteration:", time.time() - loop_start_time)
+        # print("Time taken for new generation:", time.time() - start_time)
+        global NEW_GENERATIONS_CALLED
+        NEW_GENERATIONS_CALLED += 1
+        # print(NEW_GENERATIONS_CALLED)
 
     def GAStep(self):
         """
@@ -246,14 +304,44 @@ class BasicTSP:
 
         print("Total iterations: ", self.iteration)
         print("Best Solution: ", self.best.getFitness())
+        return self.best.getFitness()
 
 
-# if len(sys.argv) < 2:
+# if len(sys.argv) < 5:
 #     print("Error - Incorrect input")
-#     print("Expecting python BasicTSP.py [instance] ")
+#     # print("Expecting python BasicTSP.py [instance] ")
+#     print(" Expecting syntax in terminal for eg :  "
+#           " python   filename   data_file   config_to_run     population_size     mutation_rate \n"
+#           "\t \t \t \t \t python TSP_toStudents.py 'TSP dataset/inst-0.tsp'   1       100       0.05")
 #     sys.exit(0)
-
+#
 # problem_file = sys.argv[1]
+# config = int(sys.argv[2])
+# population_size = int(sys.argv[3])
+# mutation_rate = float(sys.argv[4])
+# print('program file : ', problem_file)
+# print('config : ', config)
+# print('mutation_rate ', mutation_rate)
+# print('population_size : ', population_size)
+# # config = 1
+# best_sol = []
+# for i in range(1,2):
+#     print("***********************************")
+#     print("Execution number : ", i, "starts now")
+#     start_time = time.time()
+#     ga = BasicTSP(problem_file, config, population_size, mutation_rate, 500)
+#     best_sol.append(ga.search())
+#     print('total execution time in seconds :- ', time.time() - start_time)
+#     print("Execution number : ", i, "ends now")
+#     print("***********************************")
+#
+# best_sol.sort()
+# print("list of 5 times execution result ", best_sol)
+# print("final best solution among all execution : ", best_sol[0])
 
-ga = BasicTSP(r'D:\MS_CIT\MetaHeuristic Optimisation\Lab\Lab Exercise 1\TSP dataset\inst-4.tsp', 300, 0.1, 500)
-ga.search()
+start_time = time.time()
+ga = BasicTSP(r'D:\MS_CIT\MetaHeuristic Optimisation\Assignment\TSP_Project\TSP dataset\inst-0.tsp', 5, 5, 0.05, 1)
+sol = ga.search()
+print(sol)
+print(NEW_GENERATIONS_CALLED)
+print("Execution time:", time.time() - start_time)
