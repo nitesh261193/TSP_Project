@@ -23,7 +23,7 @@ class Individual:
         elif random_init:  # Random initialisation of genes
             self.genes = list(self.data.keys())
             random.shuffle(self.genes)
-        else:
+        else:  # Initialisation using heuristic approach
             self.genes = self.heuristic()
 
     def copy(self):
@@ -55,23 +55,27 @@ class Individual:
 
     def heuristic(self):
         """
-        Generating genes by heuristic method
+        Generating genes by heuristic method.
+        We select a node randomly and then greedily move to the node closest to the current node
         """
         nodes = list(self.data.keys())
         random.shuffle(nodes)
-        parent = [nodes.pop(0)]
+        traversal = [nodes.pop(0)]  # Starting traversal from a random node
 
         while nodes:
             min_cost = sys.maxsize
             min_cost_node = -1
 
             for node in nodes:
-                cost = self.euclideanDistance(parent[-1], node)
+                # Checking cost from the most recent node in traversal
+                cost = self.euclideanDistance(traversal[-1], node)
+                # Update the minimum cost if the cost from current node is less than the minimum cost so far
                 if cost < min_cost:
                     min_cost = cost
                     min_cost_node = node
 
+            # Remove the node with minimum cost from the list and add it to the traversal
             nodes = [node for node in nodes if node != min_cost_node]
-            parent.append(min_cost_node)
+            traversal.append(min_cost_node)
 
-        return parent
+        return traversal
