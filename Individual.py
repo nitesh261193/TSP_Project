@@ -9,7 +9,7 @@ import sys
 
 
 class Individual:
-    def __init__(self, _size, _data, cgenes, initial_sol_random=False):
+    def __init__(self, _size, _data, cgenes, random_init=False):
         """
         Parameters and general variables
         """
@@ -20,7 +20,7 @@ class Individual:
 
         if cgenes:  # Child genes from crossover
             self.genes = cgenes
-        elif initial_sol_random:  # Random initialisation of genes
+        elif random_init:  # Random initialisation of genes
             self.genes = list(self.data.keys())
             random.shuffle(self.genes)
         else:
