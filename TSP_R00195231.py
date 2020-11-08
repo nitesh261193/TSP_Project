@@ -1,13 +1,12 @@
 """
-Author:
-file:
-Rename this file to TSP_x.py where x is your student number 
+Author: Nitesh Gupta
+file: TSP_R00195231.py
 """
 
 from Individual import *
 import time
 
-myStudentNum = 195231  # Replace 12345 with your student number
+myStudentNum = 195231
 random.seed(myStudentNum)
 
 
@@ -48,7 +47,8 @@ class BasicTSP:
 
         print("\n==================================")
         print(
-            f"Setup with crossover type:{self.crossover_type}, mutation type:{self.mutation_type}, init method:{self.init_method}")
+            f"Setup with crossover type:{self.crossover_type}, "
+            f"mutation type:{self.mutation_type}, init method:{self.init_method}")
         print("==================================\n")
 
         self.readInstance()
@@ -70,11 +70,13 @@ class BasicTSP:
         """
         Creating random individuals in the population
         """
+        # Initializing individuals in the population
         for i in range(0, self.popSize):
             individual = Individual(self.genSize, self.data, [], random_init=self.init_method == 'random')
             individual.computeFitness()
             self.population.append(individual)
 
+        # Selecting best initial solution
         self.best = self.population[0].copy()
         for ind_i in self.population:
             if self.best.getFitness() > ind_i.getFitness():
@@ -82,6 +84,9 @@ class BasicTSP:
         print("Best initial sol: ", self.best.getFitness())
 
     def updateBest(self, candidate):
+        """
+        Update best candidate by comparing fitness with the given candidate
+        """
         if self.best is None or candidate.getFitness() < self.best.getFitness():
             self.best = candidate.copy()
             print("iteration: ", self.iteration, "best: ", self.best.getFitness())
@@ -96,88 +101,119 @@ class BasicTSP:
 
     def binaryTournamentSelection(self):
         """
-        Your stochastic universal sampling Selection Implementation
+        Stochastic universal sampling Selection Implementation
         """
         indA = self.selectionInTournament(10)
         indB = self.selectionInTournament(10)
         return [indA, indB]
 
     def selectionInTournament(self, tournament_size):
-        allparents = self.matingPool
-        pool = random.sample(self.matingPool, k = tournament_size)
-        # pool = [allparents[random.randint(0, len(self.matingPool)-1)] for i in range(tournament_size)]
+        """
+        Select an individual by performing a tournament of given size
+        """
+        pool = random.sample(self.matingPool, k=tournament_size)
         indA = pool[0].copy()
         for ind_i in pool:
             if indA.getFitness() > ind_i.getFitness():
                 indA = ind_i.copy()
+
         assert len(set(indA.genes)) == self.genSize
+
         return indA
 
     def uniformCrossover(self, indA, indB):
         """
-        Your Uniform Crossover Implementation
+        Uniform Crossover Implementation
         """
+
         def select_from_indA(index):
+            """Criteria for selecting a gene index for individual A"""
             return index % 3 == 0
+
+        # Genes selected from individual A
         indA_selections_set = [indA.genes[i] for i in range(self.genSize) if select_from_indA(i)]
         child_genes = []
         j = 0
         for i in range(self.genSize):
+            # If the gene index is to be selected from `indA` then select it
             if select_from_indA(i):
                 child_genes.append(indA.genes[i])
                 continue
+            # Select the first gene from `indB` which will not be selected from `indA`
             while indB.genes[j] in indA_selections_set:
                 j += 1
             child_genes.append(indB.genes[j])
             j += 1
+
         assert len(set(child_genes)) == self.genSize
-        child = Individual(self.genSize, self.data, child_genes)
+        child = Individual(self.genSize, self.data, child_genes)  # Creating a child from the selected genes
+
         return child
 
     def order1Crossover(self, indA, indB):
         """
-        Your Order-1 Crossover Implementation
+        Order-1 Crossover Implementation
         """
+        # Select genes from individual A
         splitPoint1 = random.randint(0, int(self.genSize / 2))
         splitPoint2 = random.randint(int(self.genSize / 2), self.genSize)
         cgenes = indA.genes[splitPoint1:splitPoint2]
+
+        # Select genes from individual B which are not selected from individual A
         cgenes.extend(indB.genes[key] for key in range(self.genSize) if indB.genes[key] not in cgenes)
+
+        # Creating a child from the selected genes
         child = Individual(self.genSize, self.data, cgenes)
         assert len(set(child.genes)) == self.genSize
+
         return child
 
     def scrambleMutation(self, ind):
         """
-        Your Scramble Mutation implementation
+        Scramble Mutation implementation
         """
         if random.random() > self.mutationRate:
             return ind
+
+        # Perform mutation
         indexA = random.randint(0, int(self.genSize / 2))
         indexB = random.randint(int(self.genSize / 2), self.genSize - 1)
         temp = [ind.genes[i] for i in range(indexA, indexB)]
         random.shuffle(temp)
+
         assert len(temp) == indexB - indexA
+
         ind.genes[indexA: indexB] = temp[0: (len(temp))]
         ind.computeFitness()
-        self.updateBest(ind)
+
+        self.updateBest(ind)  # Try to update `best` after mutation
+
         assert len(set(ind.genes)) == self.genSize
+
         return ind
 
     def inversionMutation(self, ind):
         """
-        Your Inversion Mutation implementation
+        Inversion Mutation implementation
         """
         if random.random() > self.mutationRate:
             return ind
+
+        # Perform mutation
         indexA = random.randint(0, int(self.genSize / 2))
         indexB = random.randint(int(self.genSize / 2), self.genSize - 1)
         temp = [ind.genes[i] for i in range(indexA, indexB)]
         temp.reverse()
+
         assert len(temp) == indexB - indexA
+
         ind.genes[indexA: indexB] = temp[0: (len(temp))]
         ind.computeFitness()
-        self.updateBest(ind)
+
+        self.updateBest(ind)  # Try to update `best` after mutation
+
         assert len(set(ind.genes)) == self.genSize
+
         return ind
 
     def crossover(self, indA, indB):
@@ -198,6 +234,7 @@ class BasicTSP:
         """
         if random.random() > self.mutationRate:
             return ind
+
         indexA = random.randint(0, self.genSize - 1)
         indexB = random.randint(0, self.genSize - 1)
 
@@ -207,6 +244,7 @@ class BasicTSP:
 
         ind.computeFitness()
         self.updateBest(ind)
+
         return ind
 
     def updateMatingPool(self):
@@ -226,13 +264,6 @@ class BasicTSP:
         """
 
         for i in range(0, len(self.population)):
-            """
-            Depending of your experiment you need to use the most suitable algorithms for:
-            1. Select two candidates
-            2. Apply Crossover
-            3. Apply Mutation
-            """
-
             parent1, parent2 = self.binaryTournamentSelection()
 
             # Crossover selection
@@ -248,7 +279,7 @@ class BasicTSP:
                 child = self.inversionMutation(child)
                 self.population[i] = child.copy()
             elif self.mutation_type == 'scramble':
-                self.scrambleMutation(child)
+                child = self.scrambleMutation(child)
                 self.population[i] = child.copy()
             else:
                 raise ValueError(f"{self.mutation_type} mutation is not mapped!")
@@ -281,12 +312,12 @@ class BasicTSP:
 if __name__ == '__main__':
     if len(sys.argv) < 5:
         print("Error - Incorrect input")
-        # print("Expecting python BasicTSP.py [instance] ")
-        print(" Expecting syntax in terminal for eg :  "
-              " python   filename   data_file   config_to_run     population_size     mutation_rate \n"
-              "\t \t \t \t \t python TSP_toStudents.py 'TSP dataset/inst-0.tsp'   1       100       0.05")
+        print(" Expected syntax in terminal for eg :  "
+              " python TSP_R00195231.py data_file config_to_run population_size mutation_rate \n"
+              "\t \t \t \t \t python TSP_R00195231.py 'TSP dataset/inst-0.tsp' 1 100 0.05")
         sys.exit(0)
 
+    # Load configuration from program arguments
     problem_file = sys.argv[1]
     config = int(sys.argv[2])
     population_size = int(sys.argv[3])
@@ -299,6 +330,7 @@ if __name__ == '__main__':
     if 1 > config > 6:
         raise ValueError(f"Invalid config option: {config}")
 
+    # Dicts to select crossover type, mutation type and initializaiton method on the basis of configuration
     config_to_crossover_types_dict = {1: "order1", 2: "uniform", 3: "order1", 4: "uniform", 5: "order1", 6: "uniform"}
     config_to_mutation_types_dict = {1: "inversion", 2: "scramble", 3: "scramble", 4: "inversion", 5: "scramble",
                                      6: "inversion"}
