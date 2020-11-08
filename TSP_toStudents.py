@@ -103,32 +103,23 @@ class BasicTSP:
         return [indA, indB]
 
     def selectionInTournament(self, tournament_size):
-        pool = []
-        for i in range(tournament_size):
-            pool.append(self.matingPool[random.randint(0, self.popSize - 1)])
+        pool = [self.matingPool[random.randint(0, len(self.matingPool) - 1)] for i in range(tournament_size)]
         indA = pool[0].copy()
         for ind_i in pool:
             if indA.getFitness() > ind_i.getFitness():
                 indA = ind_i.copy()
-        for i in range(len(self.matingPool)):
-            if self.matingPool[i] == indA:
+        for i in range(len(self.matingPool) - 1):
+            if self.matingPool[i].genes == indA.genes:
                 del self.matingPool[i]
         assert len(set(indA.genes)) == self.genSize
         return indA
-        # random.shuffle(self.matingPool)
-        # pool = self.matingPool[0:tournament_size]
-        # indA = pool[0].copy()
-        # indA
 
     def uniformCrossover(self, indA, indB):
         """
         Your Uniform Crossover Implementation
         """
-        start_time = time.time()
-
         def select_from_indA(index):
             return index % 3 == 0
-
         indA_selections_set = [indA.genes[i] for i in range(self.genSize) if select_from_indA(i)]
         child_genes = []
         j = 0
@@ -136,18 +127,12 @@ class BasicTSP:
             if select_from_indA(i):
                 child_genes.append(indA.genes[i])
                 continue
-
             while indB.genes[j] in indA_selections_set:
                 j += 1
-
             child_genes.append(indB.genes[j])
             j += 1
-
         assert len(set(child_genes)) == self.genSize
-        # print("Time in first:", time.time() - start_time)
-        start_time = time.time()
         child = Individual(self.genSize, self.data, child_genes)
-        # print("Time in second:", time.time() - start_time)
         return child
 
     def order1Crossover(self, indA, indB):
@@ -157,9 +142,7 @@ class BasicTSP:
         splitPoint1 = random.randint(0, self.genSize / 2)
         splitPoint2 = random.randint(self.genSize / 2, self.genSize)
         cgenes = indA.genes[splitPoint1:splitPoint2]
-        for i in range(0, self.genSize):
-            if indB.genes[i] not in cgenes:
-                cgenes.append(indB.genes[i])
+        cgenes.extend(indB.genes[key] for key in range(self.genSize) if indB.genes[key] not in cgenes)
         child = Individual(self.genSize, self.data, cgenes)
         assert len(set(child.genes)) == self.genSize
         return child
@@ -168,19 +151,14 @@ class BasicTSP:
         """
         Your Scramble Mutation implementation
         """
-        temp = []
         if random.random() > self.mutationRate:
             return
         indexA = random.randint(0, self.genSize / 2)
         indexB = random.randint(self.genSize / 2, self.genSize - 1)
-
-        for i in range(indexA, indexB):
-            temp.append(ind.genes[i])
+        temp = [ind.genes[i] for i in range(indexA, indexB)]
         random.shuffle(temp)
-        for i in range(indexA, indexB):
-            ind.genes[i] = temp[0]
-            del temp[0]
-
+        assert len(temp) == indexB - indexA
+        ind.genes[indexA: indexB] = temp[0: (len(temp))]
         ind.computeFitness()
         self.updateBest(ind)
         assert len(set(ind.genes)) == self.genSize
@@ -189,19 +167,14 @@ class BasicTSP:
         """
         Your Inversion Mutation implementation
         """
-        temp = []
         if random.random() > self.mutationRate:
             return
         indexA = random.randint(0, self.genSize / 2)
         indexB = random.randint(self.genSize / 2, self.genSize - 1)
-
-        for i in range(indexA, indexB):
-            temp.append(ind.genes[i])
+        temp = [ind.genes[i] for i in range(indexA, indexB)]
         temp.reverse()
-        for i in range(indexA, indexB):
-            ind.genes[i] = temp[0]
-            del temp[0]
-
+        assert len(temp) == indexB - indexA
+        ind.genes[indexA: indexB] = temp[0: (len(temp))]
         ind.computeFitness()
         self.updateBest(ind)
         assert len(set(ind.genes)) == self.genSize
@@ -327,11 +300,11 @@ if __name__ == '__main__':
     config_to_init_method_dict = {1: "random", 2: "random", 3: "random", 4: "random", 5: "heuristic", 6: "heuristic"}
 
     best_sol = []
-    for i in range(1, 2):
+    for i in range(1, 6):
         print("***********************************")
         print("Execution number : ", i, "starts now")
         start_time = time.time()
-        ga = BasicTSP(problem_file, config, population_size, mutation_rate, 1000,
+        ga = BasicTSP(problem_file, config, population_size, mutation_rate, 500,
                       crossover_type=config_to_crossover_types_dict.get(config),
                       mutation_type=config_to_mutation_types_dict.get(config),
                       init_method=config_to_init_method_dict.get(config))
