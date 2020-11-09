@@ -2,6 +2,8 @@
 
 The assignment python script is excepting following command line arguments
 ```cmd
+Anaconda 3.8 is used as interpreter configuration
+
 python TSP_R00195231.py <data_file> <config_to_run> <population_size> <mutation_rate>
 
 Ex:
